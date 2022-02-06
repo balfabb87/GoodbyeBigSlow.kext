@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>IOKitPersonalities</key>
+	<dict>
+		<key>GoodbyeBigSlow</key>
+		<dict>
+			<key>CFBundleIdentifier</key>
+			<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+			<key>IOClass</key>
+			<string>GoodbyeBigSlow</string>
+			<key>IOMatchCategory</key>
+			<string>GoodbyeBigSlow</string>
+			<key>IOProviderClass</key>
+			<string>IOResources</string>
+		</dict>
+	</dict>
+	<key>OSBundleAllowUserLoad</key>
+	<true/>
+	<key>OSBundleLibraries</key>
+	<dict>
+		<key>com.apple.kpi.iokit</key>
+		<string>7.0</string>
+		<key>com.apple.kpi.libkern</key>
+		<string>8.0d0</string>
+		<key>com.apple.kpi.unsupported</key>
+		<string>8.0b1</string>
+	</dict>
+	<key>OsBundleRequired</key>
+	<string>Root</string>
+</dict>
+</plist>
