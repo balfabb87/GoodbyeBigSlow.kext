@@ -1,0 +1,52 @@
+# https://github.com/actions/cache
+# https://github.com/actions/checkout
+# https://github.com/ncipollo/release-action
+# https://docs.github.com/actions/using-workflows
+
+name: GitHub Continuous Integration
+
+on: [push, pull_request]
+
+env:
+  IS_RELEASE: ${{ startsWith(github.ref, 'refs/tags/v') && github.repository == 'jakwings/GoodbyeBigSlow.kext' }}
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+
+      - name: Compile kernel extension
+        run: make
+
+      - name: Make zipball from kext
+        if: success() && env.IS_RELEASE == 'true'
+        run: |
+          cd ${{github.workspace}}/build/Release
+          find GoodbyeBigSlow.kext -type f \
+          | sort \
+          | zip --verbose --no-wild --symlinks -X --latest-time \
+                --compression-method deflate -9 \
+                -@ ${{github.workspace}}/GoodbyeBigSlow-${{github.ref_name}}.zip
+
+      - name: Create GitHub release
+        if: success() && env.IS_RELEASE == 'true'
+        uses: ncipollo/release-action@v1
+        with:
+          token: ${{ github.token }}
+          allowUpdates: true
+          artifactErrorsFailBuild: true
+          removeArtifacts: false
+          replacesArtifacts: true
+          tag: Archives
+          artifacts: ${{github.workspace}}/GoodbyeBigSlow-${{github.ref_name}}.zip
+          artifactContentType: raw
+          generateReleaseNotes: true
+          omitBodyDuringUpdate: true
+          omitNameDuringUpdate: true
+          omitPrereleaseDuringUpdate: true
+          draft: false
+          prerelease: false
