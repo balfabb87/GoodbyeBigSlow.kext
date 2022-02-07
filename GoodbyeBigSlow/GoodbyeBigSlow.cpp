@@ -40,37 +40,30 @@ extern "C" {
     extern void mp_rendezvous_no_intrs(void (*action_func)(void *), void *arg);
 }
 
-const uint32_t kMsrTurbo = MSR_IA32_MISC_ENABLE;
-const uint32_t kMsrProchot = 0x1FC;
-
+// ALERT: Toggling PROCHOT more than once in ~2 ms period will result in
+//        constant Pn state of the processor.
 // https://www.techpowerup.com/download/techpowerup-throttlestop/
-const uint64_t kEnableProcHot     = 0x0000000000000001ULL;
-const uint64_t kDisableTurboBoost = 0x0000004000000000ULL;
+const uint32_t kMsrProchot = 0x1FC;
+const uint64_t kEnableProcHot = 0x0000000000000001ULL;
 
-static void disable_tb_ph(__unused void* data)
+static void deassert_prochot(__unused void* data)
 {
-    uint64_t msr_turbo = rdmsr64(kMsrTurbo);
-    uint64_t msr_prochot = rdmsr64(kMsrProchot);
-    uint64_t turbo = msr_turbo | kDisableTurboBoost;
-    uint64_t prochot = msr_prochot & ~kEnableProcHot;
-    IOLog("[GoodbyeBigSlow] Disabling Turbo Boost and Bi-directional Processor Hot\n");
-    IOLog("[GoodbyeBigSlow] msr_turbo   : %016llx -> %016llx\n", msr_turbo, turbo);
-    IOLog("[GoodbyeBigSlow] msr_prochot : %016llx -> %016llx\n", msr_prochot, prochot);
-    wrmsr64(kMsrTurbo, turbo);
-    wrmsr64(kMsrProchot, prochot);
+    uint64_t old_prochot = rdmsr64(kMsrProchot);
+    uint64_t new_prochot = old_prochot & ~kEnableProcHot;
+    IOLog("[GoodbyeBigSlow] De-asserting Processor Hot ...\n");
+    IOLog("[GoodbyeBigSlow] msr_prochot : %016llx -> %016llx\n", old_prochot, new_prochot);
+    wrmsr64(kMsrProchot, new_prochot);
+    IOLog("[GoodbyeBigSlow] De-asserting Processor Hot ... Done\n");
 }
 
-static void enable_tb_ph(__unused void* data)
+static void assert_prochot(__unused void* data)
 {
-    uint64_t msr_turbo = rdmsr64(kMsrTurbo);
-    uint64_t msr_prochot = rdmsr64(kMsrProchot);
-    uint64_t turbo = msr_turbo & ~kDisableTurboBoost;
-    uint64_t prochot = msr_prochot | kEnableProcHot;
-    IOLog("[GoodbyeBigSlow] Enabling Turbo Boost and Bi-directional Processor Hot\n");
-    IOLog("[GoodbyeBigSlow] msr_turbo   : %016llx -> %016llx\n", msr_turbo, turbo);
-    IOLog("[GoodbyeBigSlow] msr_prochot : %016llx -> %016llx\n", msr_prochot, prochot);
-    wrmsr64(kMsrTurbo, turbo);
-    wrmsr64(kMsrProchot, prochot);
+    uint64_t old_prochot = rdmsr64(kMsrProchot);
+    uint64_t new_prochot = old_prochot | kEnableProcHot;
+    IOLog("[GoodbyeBigSlow] Asserting Processor Hot ...\n");
+    IOLog("[GoodbyeBigSlow] msr_prochot : %016llx -> %016llx\n", old_prochot, new_prochot);
+    wrmsr64(kMsrProchot, new_prochot);
+    IOLog("[GoodbyeBigSlow] Asserting Processor Hot ... Done\n");
 }
 
 #define super IOService
@@ -108,13 +101,13 @@ IOService* GoodbyeBigSlow::probe(IOService* provider, SInt32* score)
     return result;
 }
 
-bool GoodbyeBigSlow::start(IOService *provider)
+bool GoodbyeBigSlow::start(IOService* provider)
 {
     IOLog("[GoodbyeBigSlow] Starting ...\n");
     const bool result = super::start(provider);
 
     if (result) {
-        mp_rendezvous_no_intrs(disable_tb_ph, NULL);
+        mp_rendezvous_no_intrs(deassert_prochot, NULL);
         IOLog("[GoodbyeBigSlow] Starting ... Success\n");
     } else {
         IOLog("[GoodbyeBigSlow] Starting ... Failure\n");
@@ -122,10 +115,10 @@ bool GoodbyeBigSlow::start(IOService *provider)
     return result;
 }
 
-void GoodbyeBigSlow::stop(IOService *provider)
+void GoodbyeBigSlow::stop(IOService* provider)
 {
     IOLog("[GoodbyeBigSlow] Stopping ...\n");
     super::stop(provider);
-    mp_rendezvous_no_intrs(enable_tb_ph, NULL);
+    mp_rendezvous_no_intrs(assert_prochot, NULL);
     IOLog("[GoodbyeBigSlow] Stopping ... Done\n");
 }

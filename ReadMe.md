@@ -1,36 +1,41 @@
 Goodbye Big Slow
 ==================
 
-This kernel extension is based on [DisableTurboBoost.kext](https://github.com/nanoant/DisableTurboBoost.kext) and lets you disable [Intel Turbo Boost Technology](http://www.intel.com/content/www/us/en/architecture-and-technology/turbo-boost/turbo-boost-technology.html) and BD Prochot functionality present on latest ***Intel*** Core processors running MacOS ***Big Sur***.
+This kernel extension (kext) is based on [NoBatteryNoProblem.kext](https://github.com/balecrim/NoBatteryNoProblem.kext) and lets you disable the **BD PROCHOT** thermal throttling on *some* ***Intel Core*** processors running MacOS ***Big Sur***.
 
-Abstract
-----------
+This program implements modification of an *undocumented* [MSR (Model-Specific Register)](https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html#Intel®_64_and_IA-32_Architectures_Software_Developer's_Manual) bit responsible for [BD PROCHOT (Bi-directional Processor Hot)](https://www.intel.com/content/www/us/en/products/docs/processors/core/core-technical-resources.html) which is a signal used by peripherals to warn the CPU that they're running hot and thus initiate thermal throttling.  Apple uses this in their laptops to throttle (very, VERY agressively) their CPUs when the laptops are running with a missing/dead battery or other hardware faults.
 
-__Turbo Boost__ technology provides automatic CPU over-clocking in certain situations where there is no risk of overheating the CPU.  Unfortunately it has nasty effect of ruining various OpenCL and [OpenMP benchmark scores](http://openmp.org/forum/viewtopic.php?f=3&t=1289&p=5166&hilit=turbo+boost#p5166).
-
-As observed Turbo Boost triggers when process is occupying 100% of single CPU core, while other CPU cores are idle.  However when all CPU cores are occupied, Turbo Boost doesn't trigger as it would cause CPU overheat.  As a result parallel tasks performance running on all CPU cores does not scale relatively to number of cores, i.e. for 4 core i5 CPU OpenMP program running on all 4 cores is only ~3x faster than 1 single core version.
-
-Disabling Turbo Boost makes CPU run same clock regardless of cores occupation, therefore we get desired close to 4x speedup when running 4 cores OpenMP program vs 1 core.
-
-This program implements modification of `MSR` CPU register responsible for Turbo Boost control as described in [Table 34-10. MSRs Supported by Intel Processors Based on Intel Microarchitecture Code Name Sandy Bridge (Contd.) - Intel® 64 and IA-32 Architectures Software Developer’s Manual Volume 3C](http://www.intel.com/content/www/us/en/processors/architectures-software-developer-manuals.html).
-
-__BD Prochot__ stands for Bi-directional Prochot, which is a signal used by peripherals to warn the CPU that they're running hot and thus initiate termal throttling.  Apple uses this in their laptops to throttle (very, VERY agressively) their CPUs when the laptops are running with a missing/dead battery or other hardware faults.
+Unlike [DisableTurboBoost.kext](https://github.com/nanoant/DisableTurboBoost.kext), this kext does not fuss with Intel® Turbo Boost Technology which dynamically increases the processor's frequency as needed by taking advantage of thermal and power headroom to give you a burst of speed when you need it, and increased energy efficiency when you don’t.
 
 Prerequisites
 ---------------
 
-[Xcode](https://developer.apple.com/technologies/tools/) with __Command Line Tools__ is required to compile this module.
+[Xcode](https://developer.apple.com/technologies/tools/) with Command Line Tools is required to compile this module.
 
-Command Line Tools are available as extra add-on from `Preferences > Downloads` of Xcode 4.3 or newer, installer option on Xcode 4.2 or older or [separate download](https://developer.apple.com/downloads).  Separate download does now require Xcode to build this project.
+Command Line Tools are available as extra add-on from `Preferences > Downloads` of Xcode 4.3 or newer, installer option on Xcode 4.2 or older or [separate download](https://developer.apple.com/downloads).  Separate download does not require Xcode to build this project.
 
 Usage
 -------
 
 1. Run `csrutil disable` or `csrutil enable --without kext` in [recovery mode](https://support.apple.com/en-us/HT201314)
 2. Run `make` to build the kext bundle
-3. Run `make install` to load and disable both Turbo Boost and BD Prochot
-4. Run `make uninstall` to unload and re-enable Turbo Boost and BD Prochot
+3. Run `make install` to load this kext and de-assert PROCHOT
+4. Run `make uninstall` to unload this kext and assert PROCHOT
 5. Remember to check `System Preferences > Security & Privacy > General > Allow System software from developer "Unidentified - GoodbyeBigSlow"`
+
+After installation, the modification will happen **at boot time only** unless you manually load/unload this kext:
+
+    sudo kextunload -v -b jakwings.kext.GoodbyeBigSlow
+    sudo kextload -v -b jakwings.kext.GoodbyeBigSlow
+
+To build for other versions of Mac OS, try passing `MACOS_VERSION_MIN` to `make`:
+
+    make MACOS_VERSION_MIN=10.4  # untested
+
+Diagnostics
+-------------
+
+To view the log messages on system boot, keep holding Command-V before you do.
 
 To check whether your CPU has been successfully unthrottled, install [Intel Power Gadget](https://www.intel.com/content/www/us/en/developer/articles/tool/power-gadget.html) and watch the stats:
 
