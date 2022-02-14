@@ -10,7 +10,7 @@ on: [push, pull_request]
 
 env:
   IS_RELEASE: ${{ startsWith(github.ref, 'refs/tags/v') && github.repository == 'jakwings/GoodbyeBigSlow.kext' }}
-  VERSION_MIN: 10.11
+  VERSION_MIN: '10.11'
 
 jobs:
   build:
@@ -41,6 +41,7 @@ jobs:
         run: |
           make XCODE=OFF MACOS_VERSION_MIN="${VERSION_MIN}"
           make clean
+          grep -q "SDKROOT = macosx;" *.xcodeproj/project.pbxproj
           sed -i.bak "s/SDKROOT = macosx;/SDKROOT = macosx${VERSION_MIN};/g" *.xcodeproj/project.pbxproj
           make XCODE=ON MACOS_VERSION_MIN="${VERSION_MIN}"
 
@@ -67,7 +68,9 @@ jobs:
           artifactContentType: raw
           tag: Downloads
           body: |
-            **Full changelog**: https://github.com/${{github.repository}}/commits/${{github.ref_name}}
+            **Changelog**: https://github.com/${{github.repository}}/commits/master
+
+            **Installation**: Drag GoodbyeBigSlow.kext into `/Library/Extensions` folder.
           generateReleaseNotes: false
           omitBodyDuringUpdate: true
           omitNameDuringUpdate: true

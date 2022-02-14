@@ -5,28 +5,35 @@ This kernel extension (kext) is based on [NoBatteryNoProblem.kext](https://githu
 
 This program implements modification of an *undocumented* [MSR (Model-Specific Register)](https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html#Intel®_64_and_IA-32_Architectures_Software_Developer's_Manual) bit responsible for [BD PROCHOT (Bi-directional Processor Hot)](https://www.intel.com/content/www/us/en/products/docs/processors/core/core-technical-resources.html) which is a signal used by peripherals to warn the CPU that they're running hot and thus initiate thermal throttling.  Apple uses this in their laptops to throttle (very, VERY agressively) their CPUs when the laptops are running with a missing/dead battery or other hardware faults.
 
-Unlike [DisableTurboBoost.kext](https://github.com/nanoant/DisableTurboBoost.kext), this kext does not fuss with Intel® Turbo Boost Technology which dynamically increases the processor's frequency as needed by taking advantage of thermal and power headroom to give you a burst of speed when you need it, and increased energy efficiency when you don’t.
+Unlike [DisableTurboBoost.kext](https://github.com/nanoant/DisableTurboBoost.kext), this kext does not fuss with Intel® Turbo Boost Technology which dynamically increases the processor's frequency as needed by taking advantage of thermal and power headroom to give you a burst of speed when you need it, and increased energy efficiency when you don't.
 
 Prerequisites
 ---------------
 
 [Xcode](https://developer.apple.com/technologies/tools/) with Command Line Tools is required to compile this module.
 
-Command Line Tools are available as extra add-on from `Preferences > Downloads` of Xcode 4.3 or newer, installer option on Xcode 4.2 or older or [separate download](https://developer.apple.com/downloads).  Separate download does not require Xcode to build this project.
+Command Line Tools are available as extra add-on from `Preferences > Downloads` of Xcode 4.3 or newer, installer option on Xcode 4.2 or older or [separate download](https://developer.apple.com/downloads).  *Separate download does not require Xcode to build this project.*
 
-Usage
--------
+Installation
+--------------
 
-1. Run `csrutil disable` or `csrutil enable --without kext` in [recovery mode](https://support.apple.com/en-us/HT201314)
-2. Run `make` to build the kext bundle
-3. Run `make install` to load this kext and de-assert PROCHOT
-4. Run `make uninstall` to unload this kext and assert PROCHOT
-5. Remember to check `System Preferences > Security & Privacy > General > Allow System software from developer "Unidentified - GoodbyeBigSlow"`
+For the impatient: skip step 2-4 by downloading [the pre-compiled kext](https://github.com/jakwings/GoodbyeBigSlow.kext/releases) and putting it into `/Library/Extensions`.
+
+1. Run `csrutil disable` or `csrutil enable --without kext` in [Recovery Mode](https://support.apple.com/kb/HT201314).
+2. Run `make` to build the kext bundle.
+3. Run `make uninstall` to unload this kext and assert `PROCHOT`.
+4. Run `make install` to load this kext and de-assert `PROCHOT`.
+5. Remember to check `System Preferences > Security & Privacy > General > Allow System software from developer "Unidentified - GoodbyeBigSlow"`.
+6. Shut down the computer.
+7. Reset the [System Management Controller (SMC)](https://support.apple.com/kb/HT201295).
+8. Reboot the computer and optionally keep running `caffeinate -s` to prevent system sleep.
+
+Repeat step 6-8 if throttling reoccurs in the future.
 
 After installation, the modification will happen **at boot time only** unless you manually load/unload this kext:
 
-    sudo kextunload -v -b jakwings.kext.GoodbyeBigSlow
-    sudo kextload -v -b jakwings.kext.GoodbyeBigSlow
+    sudo kextunload -v /Library/Extensions/GoodbyeBigSlow.kext
+    sudo kextload -v /Library/Extensions/GoodbyeBigSlow.kext
 
 To build for other versions of Mac OS, try passing `MACOS_VERSION_MIN` to `make`:
 
@@ -35,13 +42,13 @@ To build for other versions of Mac OS, try passing `MACOS_VERSION_MIN` to `make`
 Diagnostics
 -------------
 
-To view the log messages on system boot, keep holding Command-V before you do.
+To view the log messages on system boot, [keep holding Command-V before you do](https://support.apple.com/kb/HT201255).
 
 To check whether your CPU has been successfully unthrottled, install [Intel Power Gadget](https://www.intel.com/content/www/us/en/developer/articles/tool/power-gadget.html) and watch the stats:
 
 ![statistics of working cpu](other/cpu-stats.png)
 
-When using GoodbyeBigSlow.kext, it is strongly recommended to monitor power consumption at the wall with a Kill-a-Watt meter or similar device and make sure that you don't exceed the power capabilities of your power adapter.  Use of GoodbyeBigSlow.kext to bypass these throttling schemes is at your own risk and can result in permanent damage to your power adapter or computer or both which may not be covered by your warranty.
+When using GoodbyeBigSlow.kext, it is strongly recommended to monitor power consumption at the wall with a Kill-a-Watt meter or similar device and make sure that you don't exceed the power capabilities of your power adapter.  Use of GoodbyeBigSlow.kext to bypass this throttling scheme is at your own risk and can result in permanent damage to your power adapter or computer or both which may not be covered by your warranty.
 
 License
 ---------
