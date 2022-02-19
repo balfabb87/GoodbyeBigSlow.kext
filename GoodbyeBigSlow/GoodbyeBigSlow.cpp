@@ -120,9 +120,9 @@ bool GoodbyeBigSlow::start(IOService* provider)
 void GoodbyeBigSlow::stop(IOService* provider)
 {
     IOLog("[GoodbyeBigSlow] Stopping ...\n");
-    IOLog("[GoodbyeBigSlow] Asserting Processor Hot ...\n");
-    mp_rendezvous_no_intrs(assert_prochot, NULL);
-    IOLog("[GoodbyeBigSlow] Asserting Processor Hot ... Done\n");
+    //IOLog("[GoodbyeBigSlow] Asserting Processor Hot ...\n");
+    //mp_rendezvous_no_intrs(assert_prochot, NULL);
+    //IOLog("[GoodbyeBigSlow] Asserting Processor Hot ... Done\n");
     super::stop(provider);
     IOLog("[GoodbyeBigSlow] Stopping ... Done\n");
 }

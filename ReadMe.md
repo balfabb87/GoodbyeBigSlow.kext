@@ -7,6 +7,8 @@ This program implements modification of an *undocumented* [MSR (Model-Specific R
 
 Unlike [DisableTurboBoost.kext](https://github.com/nanoant/DisableTurboBoost.kext), this kext does not fuss with Intel® Turbo Boost Technology which dynamically increases the processor's frequency as needed by taking advantage of thermal and power headroom to give you a burst of speed when you need it, and increased energy efficiency when you don't.
 
+You may have noticed other slowdowns by background processes like `syspolicyd`, `trustd`, `taskgated`, `WindowServer`, `MRT`, `VTDecoderXPCService` but this kext is not going to solve them.  Read this article, STFW and back up your data before risking it: https://www.naut.ca/blog/2020/11/13/forbidden-commands-to-liberate-macos/
+
 Prerequisites
 ---------------
 
@@ -21,7 +23,7 @@ For the impatient: skip step 2-4 by downloading [the pre-compiled kext](https://
 
 1. Run `csrutil disable` or `csrutil enable --without kext` in [Recovery Mode](https://support.apple.com/kb/HT201314).
 2. Run `make` to build the kext bundle.
-3. Run `make uninstall` to unload this kext and assert `PROCHOT`.
+3. Run `make uninstall` to unload this kext.
 4. Run `make install` to load this kext and de-assert `PROCHOT`.
 5. Remember to check `System Preferences > Security & Privacy > General > Allow System software from developer "Unidentified - GoodbyeBigSlow"`.
 6. Shut down the computer.
