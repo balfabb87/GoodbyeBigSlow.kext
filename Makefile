@@ -2,7 +2,7 @@
 NAME := GoodbyeBigSlow
 
 KEXT_ID      := jakwings.kext.$(NAME)
-KEXT_VERSION := 2022.2.20
+KEXT_VERSION := 2022.2.26
 
 MACOS_VERSION_MIN := 11.6
 
@@ -24,13 +24,17 @@ XCODEBUILD_OPTIONS := MARKETING_VERSION=$(KEXT_VERSION) \
 all: $(BIN)
 
 $(BIN): $(DEPS) Makefile
-	[ ON != '$(XCODE)' ] || xcodebuild -configuration Release -project $(PROJ) $(XCODEBUILD_OPTIONS)
-	[ ON = '$(XCODE)' ] || mkdir -p $(KEXT)/Contents/MacOS
-	[ ON = '$(XCODE)' ] || sed -e 's/\$$(MARKETING_VERSION)/$(KEXT_VERSION)/g' -e 's/\$$(PRODUCT_BUNDLE_IDENTIFIER)/$(KEXT_ID)/g' <$(NAME)/Info.plist >$(KEXT)/Contents/Info.plist
-	[ ON = '$(XCODE)' ] || $(CXX) -std=c++11 -stdlib=libc++ -Os $(CFLAGS) $(CPPFLAGS) $(MARCH) -isystem '$(shell xcrun --sdk macosx --show-sdk-path)/System/Library/Frameworks/Kernel.framework/Headers' -mmacosx-version-min=$(MACOS_VERSION_MIN) -static $(NAME)/$(NAME).cpp -o $(BIN) -Xlinker -kext -nostdlib -lkmodc++ -lkmod -lcc_kext -Wall -pedantic
-	[ ON = '$(XCODE)' ] || codesign --force --sign - --entitlements $(NAME)/entitlements.xml --timestamp=none $(KEXT)
+ifeq ($(XCODE),ON)
+	xcodebuild -configuration Release -project $(PROJ) $(XCODEBUILD_OPTIONS)
+else
+	mkdir -p $(KEXT)/Contents/MacOS
+	sed -e 's/\$$(MARKETING_VERSION)/$(KEXT_VERSION)/g' -e 's/\$$(PRODUCT_BUNDLE_IDENTIFIER)/$(KEXT_ID)/g' <$(NAME)/Info.plist >$(KEXT)/Contents/Info.plist
+	$(CXX) -std=c++11 -stdlib=libc++ -Os $(CFLAGS) $(CPPFLAGS) $(MARCH) -isystem '$(shell xcrun --sdk macosx --show-sdk-path)/System/Library/Frameworks/Kernel.framework/Headers' -mmacosx-version-min=$(MACOS_VERSION_MIN) -static $(NAME)/$(NAME).cpp -o $(BIN) -Xlinker -kext -nostdlib -lkmodc++ -lkmod -lcc_kext -Wall -pedantic
+	codesign --force --sign - --entitlements $(NAME)/entitlements.xml --timestamp=none $(KEXT)
+endif
 
 install: all $(KEXT)
+	./other/check_cpuid.sh
 	sudo mkdir -p $(INSTALL_DIR)
 	sudo cp -R $(KEXT) $(INSTALL_DIR)
 	sudo kextload -v $(INSTALL_DIR)/$(NAME).kext

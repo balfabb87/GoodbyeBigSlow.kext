@@ -49,7 +49,8 @@ jobs:
         if: success() && env.IS_RELEASE == 'true'
         run: |
           cd ${{github.workspace}}/build/Release
-          find GoodbyeBigSlow.kext -type f \
+          cp ${{github.workspace}}/other/check_cpuid.sh Install
+          find Install GoodbyeBigSlow.kext -type f \
           | sort \
           | zip --verbose --no-wild --symlinks -X --latest-time \
                 --compression-method deflate -9 \
@@ -70,7 +71,7 @@ jobs:
           body: |
             **Changelog**: https://github.com/${{github.repository}}/commits/master
 
-            **Installation**: Drag GoodbyeBigSlow.kext into `/Library/Extensions` folder.
+            **Installation**: Unpack the zip, click open `Install` and then follow the instructions.
           generateReleaseNotes: false
           omitBodyDuringUpdate: true
           omitNameDuringUpdate: true

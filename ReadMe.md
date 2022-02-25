@@ -44,11 +44,21 @@ To build for other versions of Mac OS, try passing `MACOS_VERSION_MIN` to `make`
 Diagnostics
 -------------
 
+To find out whether your CPU has the MSR `MSR_POWER_CTL = 1FCH` if the installer is out of date:
+
+1.  retrieve the specifications of your CPU [here](https://ark.intel.com/content/www/us/en/ark/search/featurefilter.html)
+2.  download the PDF document "[Intel® 64 and IA-32 architectures software developer's manual volume 4: Model-specific registers](https://cdrdv2.intel.com/v1/dl/getContent/671098)" from https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html
+3.  open the PDF document, locate at the section ("2.x MSRs in ...") that matches your CPU architecture and read very carefully to which table(s) it refers and see if MSR with address `1FCH` is listed there
+4.  this is all for not halting your computer by invalid read/write operation on the MSR
+5.  for other CPUs, try https://github.com/calasanmarko/TurboMac or https://apple.stackexchange.com/
+
 To view the log messages on system boot, [keep holding Command-V before you do](https://support.apple.com/kb/HT201255).
 
 To check whether your CPU has been successfully unthrottled, install [Intel Power Gadget](https://www.intel.com/content/www/us/en/developer/articles/tool/power-gadget.html) and watch the stats:
 
 ![statistics of working cpu](other/cpu-stats.png)
+
+To display the stats on the menu bar, install [Stats.app](https://github.com/exelban/stats) instead.
 
 When using GoodbyeBigSlow.kext, it is strongly recommended to monitor power consumption at the wall with a Kill-a-Watt meter or similar device and make sure that you don't exceed the power capabilities of your power adapter.  Use of GoodbyeBigSlow.kext to bypass this throttling scheme is at your own risk and can result in permanent damage to your power adapter or computer or both which may not be covered by your warranty.
 
