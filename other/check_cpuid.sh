@@ -97,6 +97,7 @@ if [ -t 0 ]; then
     read -r answer
     case "${answer}" in
       ([yY]*)
+        sudo true
         dst_dir=/Library/Extensions
         dst_kext="${dst_dir}/GoodbyeBigSlow.kext"
         if [ -e "${dst_kext}" ]; then

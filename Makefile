@@ -2,7 +2,7 @@
 NAME := GoodbyeBigSlow
 
 KEXT_ID      := jakwings.kext.$(NAME)
-KEXT_VERSION := 2022.2.27
+KEXT_VERSION := 2022.2.28
 
 MACOS_VERSION_MIN := 11.6
 
@@ -35,16 +35,18 @@ endif
 
 install: all $(KEXT)
 	./other/check_cpuid.sh
+	sudo true
 	sudo mkdir -p $(INSTALL_DIR)
 	sudo cp -R $(KEXT) $(INSTALL_DIR)
 	sudo kextload -v $(INSTALL_DIR)/$(NAME).kext
 	sudo touch $(INSTALL_DIR)
 
 uninstall:
+	sudo true
 	sudo kextunload -v $(INSTALL_DIR)/$(NAME).kext || true
-	sudo rm -v -R $(INSTALL_DIR)/$(NAME).kext
+	sudo rm -v -R -f $(INSTALL_DIR)/$(NAME).kext
 
 clean:
-	rm -v -R build
+	rm -v -R -f build
 
 .PHONEY: all install uninstall clean

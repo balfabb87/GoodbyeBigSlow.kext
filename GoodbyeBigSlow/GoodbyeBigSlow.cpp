@@ -29,6 +29,7 @@
 #include <mach/mach_types.h>
 #include <libkern/libkern.h>
 #include <i386/proc_reg.h>
+#include <i386/cpuid.h>
 
 #if !defined(MSR_IA32_POWER_CTL)
 #define MSR_IA32_POWER_CTL 0x1FC
@@ -37,7 +38,7 @@
 extern "C" {
     // https://github.com/apple/darwin-xnu/blob/main/osfmk/i386/mp.h
     // Perform actions on all processor cores.
-    extern void mp_rendezvous_no_intrs(void (*action_func)(void *), void *arg);
+    extern void mp_rendezvous_no_intrs(void (*func)(void *), void *arg);
 }
 
 // Credit to https://www.techpowerup.com/download/techpowerup-throttlestop/
@@ -56,6 +57,28 @@ static void deassert_prochot(__unused void* data)
     }
 }
 
+// check cpu vendor and family but not model
+static bool using_targeted_intel_cpu(void)
+{
+    uint32_t registers[4] = {[eax]=0x00};
+    cpuid(registers);
+
+    bool GenuineIntel = registers[ebx] == 0x756E6547 &&
+        registers[edx] == 0x49656E69 &&
+        registers[ecx] == 0x6C65746E;
+
+    if (GenuineIntel) {
+        registers[eax] = 0x01;
+        cpuid(registers);
+        return ((registers[eax] >> 8) & 0x0F) == 0x06;
+    }
+    return false;
+}
+
+/*==========================================================================*\
+)   Virtual Driver auto loaded at boot time.                                 (
+\*==========================================================================*/
+
 #include <IOKit/IOLib.h>
 #include "GoodbyeBigSlow.hpp"
 
@@ -66,6 +89,13 @@ OSDefineMetaClassAndStructors(GoodbyeBigSlow, IOService)
 bool GoodbyeBigSlow::init(OSDictionary* dict)
 {
     IOLog("[GoodbyeBigSlow] Initializing ...\n");
+
+    if (!using_targeted_intel_cpu()) {
+        IOLog("[GoodbyeBigSlow] Targeted Intel CPU unavailable!\n");
+        IOLog("[GoodbyeBigSlow] Initializing ... Failure\n");
+        return false;
+    }
+
     const auto result = super::init(dict);
 
     if (result) {
