@@ -30,35 +30,30 @@
 #include <libkern/libkern.h>
 #include <i386/proc_reg.h>
 
+#if !defined(MSR_IA32_POWER_CTL)
+#define MSR_IA32_POWER_CTL 0x1FC
+#endif
+
 extern "C" {
     // https://github.com/apple/darwin-xnu/blob/main/osfmk/i386/mp.h
-    // Perform actions on all processors.
+    // Perform actions on all processor cores.
     extern void mp_rendezvous_no_intrs(void (*action_func)(void *), void *arg);
 }
 
-// ALERT: Toggling PROCHOT more than once in ~2 ms period will result in
-//        constant Pn state of the processor.
-#if defined(MSR_IA32_POWER_CTL)
-const uint32_t kMsrProchot = MSR_IA32_POWER_CTL;
-#else
-const uint32_t kMsrProchot = 0x1FC;
-#endif
 // Credit to https://www.techpowerup.com/download/techpowerup-throttlestop/
 const uint64_t kEnableProcHot = 0x0000000000000001ULL;
 
-// TODO: find out what SMC does after system sleep/hibernation
+// ALERT: Toggling PROCHOT more than once in ~2 ms period can result in
+//        constant Pn state of the processor.
 static void deassert_prochot(__unused void* data)
 {
-    uint64_t old_prochot = rdmsr64(kMsrProchot);
+    uint64_t old_prochot = rdmsr64(MSR_IA32_POWER_CTL);
     uint64_t new_prochot = old_prochot & ~kEnableProcHot;
-    wrmsr64(kMsrProchot, new_prochot);
-}
 
-static void assert_prochot(__unused void* data)
-{
-    uint64_t old_prochot = rdmsr64(kMsrProchot);
-    uint64_t new_prochot = old_prochot | kEnableProcHot;
-    wrmsr64(kMsrProchot, new_prochot);
+    // hopefully not to cause invalid write and the black screen of death
+    if (old_prochot & kEnableProcHot) {
+        wrmsr64(MSR_IA32_POWER_CTL, new_prochot);
+    }
 }
 
 #include <IOKit/IOLib.h>
@@ -120,9 +115,6 @@ bool GoodbyeBigSlow::start(IOService* provider)
 void GoodbyeBigSlow::stop(IOService* provider)
 {
     IOLog("[GoodbyeBigSlow] Stopping ...\n");
-    //IOLog("[GoodbyeBigSlow] Asserting Processor Hot ...\n");
-    //mp_rendezvous_no_intrs(assert_prochot, NULL);
-    //IOLog("[GoodbyeBigSlow] Asserting Processor Hot ... Done\n");
     super::stop(provider);
     IOLog("[GoodbyeBigSlow] Stopping ... Done\n");
 }

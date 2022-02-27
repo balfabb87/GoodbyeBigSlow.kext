@@ -101,10 +101,10 @@ if [ -t 0 ]; then
         dst_kext="${dst_dir}/GoodbyeBigSlow.kext"
         if [ -e "${dst_kext}" ]; then
           printf '[INFO] Found existing GoodbyeBigSlow.kext in /Library/Extensions\n'
-          backup="${dst_kext}-backup-$$"
+          backup="${dst_kext}-backup-$(date '+%Y%m%d%H%M%S')"
           printf '[INFO] Moving existing GoodbyeBigSlow.kext to %s ...\n' "${backup}"
           sudo cp -R "${dst_kext}" "${backup}"
-          sudo kextunload -quiet "${dst_kext}"
+          sudo kextunload -quiet "${dst_kext}" || true
           sudo rm -R "${dst_kext}"
         else
           sudo mkdir -p "${dst_dir}"

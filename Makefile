@@ -2,7 +2,7 @@
 NAME := GoodbyeBigSlow
 
 KEXT_ID      := jakwings.kext.$(NAME)
-KEXT_VERSION := 2022.2.26
+KEXT_VERSION := 2022.2.27
 
 MACOS_VERSION_MIN := 11.6
 
