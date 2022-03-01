@@ -59,7 +59,7 @@ case "${vendor}" in
       #2.16.1# Intel® Xeon® Processor D Family @ Broadwell
       (06_56) recognized=yes ;;
       #2.16.2# Intel® Xeon® processor E5 v4 Family @ Broadwell
-      (06_4F) case "${processor}" in (*Xeon*E5*v4*) recognized=yes; esac ;;
+      (06_4F) case "${processor}" in (*[Xx][Ee][Oo][Nn]*) recognized=yes; esac ;;
       #2.17# 6th-Gen Intel® Core™ processors @ Skylake
       (06_4E|06_5E) recognized=yes ;;
       #2.17# Intel® Xeon® Processor Scalable Family @ Skylake
@@ -87,7 +87,7 @@ case "${vendor}" in
         printf '[ERROR] Unsupported signature: %s\n' "${signature}"
     esac
     ;;
-  (*) printf '[ERROR] Unsupported CPU vendor: %s\n' "${processor}"
+  (*) printf '[ERROR] Unsupported CPU vendor: %s\n' "${vendor}"
 esac
 
 if [ -t 0 ]; then
@@ -104,15 +104,14 @@ if [ -t 0 ]; then
           printf '[INFO] Found existing GoodbyeBigSlow.kext in /Library/Extensions\n'
           backup="${dst_kext}-backup-$(date '+%Y%m%d%H%M%S')"
           printf '[INFO] Moving existing GoodbyeBigSlow.kext to %s ...\n' "${backup}"
-          sudo cp -R "${dst_kext}" "${backup}"
-          sudo kextunload -quiet "${dst_kext}" || true
-          sudo rm -R "${dst_kext}"
+          sudo kextunload -v 6 "${dst_kext}" || true
+          sudo mv "${dst_kext}" "${backup}"
         else
           sudo mkdir -p "${dst_dir}"
         fi
         printf '[INFO] Installing GoodbyeBigSlow.kext to /Library/Extensions ...\n'
         sudo cp -R -- "${src_kext}" "${dst_dir}"
-        sudo kextload -quiet "${dst_kext}" || true
+        sudo kextload -v 6 "${dst_kext}" || true
         sudo touch "${dst_dir}"
         printf 'Done.\n'
         exit 0

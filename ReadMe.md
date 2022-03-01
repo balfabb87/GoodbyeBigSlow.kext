@@ -32,7 +32,7 @@ For the impatient: skip step 2-4 by downloading [the pre-compiled kext](https://
 
 Repeat step 6-8 if throttling reoccurs in the future.
 
-After installation, the modification will happen **at boot time only** unless you manually load/unload this kext:
+After installation, the modification will happen **at boot time only** unless you manually reload this kext:
 
     sudo kextunload -v /Library/Extensions/GoodbyeBigSlow.kext
     sudo kextload -v /Library/Extensions/GoodbyeBigSlow.kext
@@ -58,7 +58,7 @@ To check whether your CPU has been successfully unthrottled, install [Intel Powe
 
 ![statistics of working cpu](other/cpu-stats.png)
 
-To display the stats on the menu bar, install [Stats.app](https://github.com/exelban/stats) instead.
+To display the stats on the menu bar, install [MenuMeter](https://github.com/yujitach/MenuMeters) instead of some spyware-like system monitoring tools like [Stats](https://github.com/jakwings/exelban-stats-no-aggressive-user-data-collection).[app](https://github.com/exelban/stats/issues/714) [¹](https://github.com/exelban/stats/pull/858) [²](https://github.com/exelban/stats/pull/742) [³](https://github.com/exelban/stats/commit/08d8d84cebf9078d7692999c243386c887d6ee14) [⁴](https://github.com/exelban/stats/commit/c5c4e4df3db0737b749ea91f903c8cf0f1ecd6aa#data_still_sent_despite_--omit) instead.  Or you can try my fork without the stealthy behavior: https://github.com/jakwings/mac-stats/releases
 
 When using GoodbyeBigSlow.kext, it is strongly recommended to monitor power consumption at the wall with a Kill-a-Watt meter or similar device and make sure that you don't exceed the power capabilities of your power adapter.  Use of GoodbyeBigSlow.kext to bypass this throttling scheme is at your own risk and can result in permanent damage to your power adapter or computer or both which may not be covered by your warranty.
 

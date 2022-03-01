@@ -1,0 +1,30 @@
+#!/bin/sh
+
+# Copyright (C) 2022 by J.W https://github.com/jakwings/GoodbyeBigSlow.kext
+#
+#   TERMS AND CONDITIONS FOR COPYING, DISTRIBUTION AND MODIFICATION
+#
+#  0. You just DO WHAT THE FUCK YOU WANT TO.
+
+set -euf; unset -v IFS; export LC_ALL=C
+
+exec >&2
+
+kext='/Library/Extensions/GoodbyeBigSlow.kext'
+
+if [ -e "${kext}" ]; then
+  printf '\nConfirm to uninstall GoodbyeBigSlow.kext ? [yes/NO] '
+  read -r answer
+  case "${answer}" in
+    ([yY]*)
+      sudo true
+      sudo kextunload -v 6 "${kext}" || true
+      sudo rm -R -v "${kext}"
+      printf 'Done.\n'
+      ;;
+    (*)
+      printf 'Canceled.\n'
+  esac
+else
+  printf 'Could not found "%s".\n' "${kext}"
+fi
