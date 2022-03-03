@@ -2,7 +2,7 @@
 NAME := GoodbyeBigSlow
 
 KEXT_ID      := jakwings.kext.$(NAME)
-KEXT_VERSION := 2022.3.1
+KEXT_VERSION := 2022.3.3
 
 MACOS_VERSION_MIN := 11.6
 
@@ -13,10 +13,18 @@ DEPS := $(PROJ)/project.pbxproj $(NAME)/Info.plist $(NAME)/entitlements.xml \
         $(NAME)/$(NAME).hpp $(NAME)/$(NAME).cpp
 INSTALL_DIR := /Library/Extensions
 
+# https://developer.apple.com/library/archive/documentation/Security/Conceptual/CodeSigningGuide/Introduction/Introduction.html
+# https://developer.apple.com/documentation/security/notarizing_macos_software_before_distribution/resolving_common_notarization_issues/
+# https://apple.stackexchange.com/questions/343912/should-i-sign-open-source-code-myself
+# https://superuser.com/questions/1436370/how-to-codesign-gdb-on-os-x-mojave
+# https://github.com/radareorg/radare2/blob/master/doc/macos.md
+CODE_SIGN_IDENTITY := -
+
 XCODEBUILD_OPTIONS := MARKETING_VERSION=$(KEXT_VERSION) \
                       PRODUCT_NAME=$(NAME) PRODUCT_BUNDLE_IDENTIFIER=$(KEXT_ID) \
                       MODULE_NAME=$(KEXT_ID) MODULE_VERSION=$(KEXT_VERSION) \
-                      MACOSX_DEPLOYMENT_TARGET=$(MACOS_VERSION_MIN)
+                      MACOSX_DEPLOYMENT_TARGET=$(MACOS_VERSION_MIN) \
+                      CODE_SIGN_IDENTITY=$(CODE_SIGN_IDENTITY)
 
 # https://developer.apple.com/library/archive/documentation/Darwin/Conceptual/KernelProgramming/
 # https://developer.apple.com/library/archive/documentation/Darwin/Conceptual/KEXTConcept/
@@ -30,7 +38,7 @@ else
 	mkdir -p $(KEXT)/Contents/MacOS
 	sed -e 's/\$$(MARKETING_VERSION)/$(KEXT_VERSION)/g' -e 's/\$$(PRODUCT_BUNDLE_IDENTIFIER)/$(KEXT_ID)/g' <$(NAME)/Info.plist >$(KEXT)/Contents/Info.plist
 	$(CXX) -std=c++11 -stdlib=libc++ -Os $(CFLAGS) $(CPPFLAGS) $(MARCH) -isystem '$(shell xcrun --sdk macosx --show-sdk-path)/System/Library/Frameworks/Kernel.framework/Headers' -mmacosx-version-min=$(MACOS_VERSION_MIN) -static $(NAME)/$(NAME).cpp -o $(BIN) -Xlinker -kext -nostdlib -lkmodc++ -lkmod -lcc_kext -Wall -pedantic
-	codesign --force --sign - --entitlements $(NAME)/entitlements.xml --timestamp=none $(KEXT)
+	codesign --force --sign $(CODE_SIGN_IDENTITY) --entitlements $(NAME)/entitlements.xml --timestamp=none $(KEXT)
 endif
 
 install: all $(KEXT)
@@ -38,12 +46,12 @@ install: all $(KEXT)
 	sudo true
 	sudo mkdir -p $(INSTALL_DIR)
 	sudo cp -R $(KEXT) $(INSTALL_DIR)
-	sudo kextload -v $(INSTALL_DIR)/$(NAME).kext
+	sudo kextload -v 4 $(INSTALL_DIR)/$(NAME).kext
 	sudo touch $(INSTALL_DIR)
 
 uninstall:
 	sudo true
-	sudo kextunload -v $(INSTALL_DIR)/$(NAME).kext || true
+	sudo kextunload -v 4 $(INSTALL_DIR)/$(NAME).kext || true
 	sudo rm -v -R -f $(INSTALL_DIR)/$(NAME).kext
 
 clean:

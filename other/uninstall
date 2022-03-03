@@ -13,12 +13,12 @@ exec >&2
 kext='/Library/Extensions/GoodbyeBigSlow.kext'
 
 if [ -e "${kext}" ]; then
-  printf '\nConfirm to uninstall GoodbyeBigSlow.kext ? [yes/NO] '
+  printf '\nContinue to uninstall GoodbyeBigSlow.kext ? [yes/NO] '
   read -r answer
   case "${answer}" in
     ([yY]*)
       sudo true
-      sudo kextunload -v 6 "${kext}" || true
+      sudo kextunload -v 4 "${kext}" || true
       sudo rm -R -v "${kext}"
       printf 'Done.\n'
       ;;

@@ -63,10 +63,10 @@ static bool using_targeted_intel_cpu(void)
     uint32_t registers[4] = {[eax]=0x00, [ebx]=0xFF, [ecx]=0xFF, [edx]=0xFF};
     cpuid(registers);
 
-    bool GenuineIntel = registers[eax] >= 1 &&
-        registers[ebx] == 0x756E6547 &&
-        registers[edx] == 0x49656E69 &&
-        registers[ecx] == 0x6C65746E;
+    bool GenuineIntel = registers[eax] >= 0x01 &&
+                        registers[ebx] == 0x756E6547 &&
+                        registers[edx] == 0x49656E69 &&
+                        registers[ecx] == 0x6C65746E;
 
     if (GenuineIntel) {
         registers[eax] = 0x01;

@@ -101,17 +101,17 @@ if [ -t 0 ]; then
         dst_dir=/Library/Extensions
         dst_kext="${dst_dir}/GoodbyeBigSlow.kext"
         if [ -e "${dst_kext}" ]; then
-          printf '[INFO] Found existing GoodbyeBigSlow.kext in /Library/Extensions\n'
+          printf '[INFO] Found existing GoodbyeBigSlow.kext in "%s"\n' "${dst_dir}"
           backup="${dst_kext}-backup-$(date '+%Y%m%d%H%M%S')"
-          printf '[INFO] Moving existing GoodbyeBigSlow.kext to %s ...\n' "${backup}"
-          sudo kextunload -v 6 "${dst_kext}" || true
+          printf '[INFO] Moving existing GoodbyeBigSlow.kext to "%s" ...\n' "${backup}"
+          sudo kextunload -v 4 "${dst_kext}" || true
           sudo mv "${dst_kext}" "${backup}"
         else
           sudo mkdir -p "${dst_dir}"
         fi
-        printf '[INFO] Installing GoodbyeBigSlow.kext to /Library/Extensions ...\n'
+        printf '[INFO] Installing GoodbyeBigSlow.kext to "%s" ...\n' "${dst_dir}"
         sudo cp -R -- "${src_kext}" "${dst_dir}"
-        sudo kextload -v 6 "${dst_kext}" || true
+        sudo kextload -v 4 "${dst_kext}" || true
         sudo touch "${dst_dir}"
         printf 'Done.\n'
         exit 0

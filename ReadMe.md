@@ -34,8 +34,8 @@ Repeat step 6-8 if throttling reoccurs in the future.
 
 After installation, the modification will happen **at boot time only** unless you manually reload this kext:
 
-    sudo kextunload -v /Library/Extensions/GoodbyeBigSlow.kext
-    sudo kextload -v /Library/Extensions/GoodbyeBigSlow.kext
+    sudo kextunload -v 4 /Library/Extensions/GoodbyeBigSlow.kext
+    sudo kextload   -v 4 /Library/Extensions/GoodbyeBigSlow.kext
 
 To build for other versions of Mac OS, try passing `MACOS_VERSION_MIN` to `make`:
 
