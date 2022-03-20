@@ -10,6 +10,22 @@ set -euf; unset -v IFS; export LC_ALL=C
 
 exec >&2
 
+status=checking
+
+printf '[INFO] Checking CPU ...\n'
+
+on_exit() {
+  exitcode="$?"
+  if [ 0 -ne "${exitcode}" ]; then
+    case "${status}" in
+      (checking) printf '[ERROR] checking failed\n' ;;
+      (installing) printf '[ERROR] installer script exited abnormally\n' ;;
+    esac
+  fi
+  exit "${exitcode}"
+}
+trap on_exit EXIT
+
 script_dir="$(dirname -- "$0")"
 
 vendor="$(sysctl -n machdep.cpu.vendor)"
@@ -83,8 +99,8 @@ case "${vendor}" in
       #2.17# 12th-Gen Intel® Core™ processors @ Alder Lake
       (06_97|06_9A|06_BF) recognized=yes ;;
       (*)
-        printf '[ERROR] Unsupported processor: %s\n' "${processor}"
-        printf '[ERROR] Unsupported signature: %s\n' "${signature}"
+        printf '[ERROR] unrecognized processor: %s\n' "${processor}"
+        printf '[ERROR] unrecognized signature: %s\n' "${signature}"
     esac
     ;;
   (*) printf '[ERROR] Unsupported CPU vendor: %s\n' "${vendor}"
@@ -97,6 +113,7 @@ if [ -t 0 ]; then
     read -r answer
     case "${answer}" in
       ([yY]*)
+        status=installing
         sudo true
         dst_dir=/Library/Extensions
         dst_kext="${dst_dir}/GoodbyeBigSlow.kext"
@@ -113,15 +130,19 @@ if [ -t 0 ]; then
         sudo cp -R -- "${src_kext}" "${dst_dir}"
         sudo kextload -v 4 "${dst_kext}" || true
         sudo touch "${dst_dir}"
+        status=done
         printf 'Done.\n'
         exit 0
         ;;
       (*)
+        status=canceled
         printf 'Canceled.\n'
         exit 1
     esac
   fi
 fi
+
+status=done
 
 if [ yes = "${recognized}" ]; then
   exit 0

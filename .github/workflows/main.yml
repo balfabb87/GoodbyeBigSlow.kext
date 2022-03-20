@@ -74,8 +74,8 @@ jobs:
 
             **Installation**: Unpack the zip, click open `Install` and then follow the instructions.
           generateReleaseNotes: false
-          omitBodyDuringUpdate: true
-          omitNameDuringUpdate: true
-          omitPrereleaseDuringUpdate: true
+          omitNameDuringUpdate: false
+          omitBodyDuringUpdate: false
+          omitPrereleaseDuringUpdate: false
           draft: false
           prerelease: false

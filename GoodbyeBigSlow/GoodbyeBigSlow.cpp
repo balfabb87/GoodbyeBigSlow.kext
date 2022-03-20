@@ -31,8 +31,11 @@
 #include <i386/proc_reg.h>
 #include <i386/cpuid.h>
 
-#if !defined(MSR_IA32_POWER_CTL)
+#ifndef MSR_IA32_POWER_CTL
 #define MSR_IA32_POWER_CTL 0x1FC
+#endif
+#ifndef MSR_IA32_PACKAGE_THERM_STATUS // per core: 19CH IA32_THERM_STATUS
+#define MSR_IA32_PACKAGE_THERM_STATUS 0x1B1
 #endif
 
 extern "C" {
@@ -45,7 +48,7 @@ extern "C" {
 const uint64_t kEnableProcHot = 0x0000000000000001ULL;
 
 // ALERT: Toggling PROCHOT more than once in ~2 ms period can result in
-//        constant Pn state of the processor.
+//        constant Pn state (Low Frequency Mode) of the processor.
 static void deassert_prochot(__unused void* data)
 {
     uint64_t old_prochot = rdmsr64(MSR_IA32_POWER_CTL);
@@ -57,21 +60,30 @@ static void deassert_prochot(__unused void* data)
     }
 }
 
-// check cpu vendor and family but not model
 static bool using_targeted_intel_cpu(void)
 {
     uint32_t registers[4] = {[eax]=0x00, [ebx]=0xFF, [ecx]=0xFF, [edx]=0xFF};
     cpuid(registers);
+    uint32_t maxval = registers[eax];
 
-    bool GenuineIntel = registers[eax] >= 0x01 &&
+    bool GenuineIntel = maxval >= 0x01 &&
                         registers[ebx] == 0x756E6547 &&
                         registers[edx] == 0x49656E69 &&
                         registers[ecx] == 0x6C65746E;
 
+    // check cpu vendor
     if (GenuineIntel) {
         registers[eax] = 0x01;
         cpuid(registers);
-        return ((registers[eax] >> 8) & 0x0F) == 0x06;
+        // check cpu family but not model
+        if (((registers[eax] >> 8) & 0x0F) == 0x06) {
+            // supports package thermal management (PTM) ?
+            if (maxval >= 0x06) {
+                registers[eax] = 0x06;
+                cpuid(registers);
+                return registers[eax] & (1 << 6);
+            }
+        }
     }
     return false;
 }
@@ -134,7 +146,26 @@ bool GoodbyeBigSlow::start(IOService* provider)
 
     if (result) {
         IOLog("[GoodbyeBigSlow] De-asserting Processor Hot ...\n");
-        mp_rendezvous_no_intrs(deassert_prochot, NULL);
+        // TODO: monitoring service
+        {
+            mp_rendezvous_no_intrs(deassert_prochot, NULL);
+
+            // TODO: 198H MSR_IA32_PERF_STS (IA32_PERF_STATUS)
+            // TODO: 199H MSR_IA32_PERF_CTL
+            uint64_t status = rdmsr64(MSR_IA32_PACKAGE_THERM_STATUS);
+            uint64_t mask = 0x28A;  // 0b1010001010
+            if (status & (1 << 11)) {
+                uint32_t registers[4] = {[eax]=6, [ebx]=0, [ecx]=0, [edx]=0};
+                cpuid(registers);
+                if (registers[eax] & (1 << 4)) {
+                    mask |= (1 << 11);
+                }
+            }
+            if (status & mask) {
+                status &= ~mask;  // clear PROCHOT logs
+                wrmsr64(MSR_IA32_PACKAGE_THERM_STATUS, status);
+            }
+        }
         IOLog("[GoodbyeBigSlow] De-asserting Processor Hot ... Done\n");
         IOLog("[GoodbyeBigSlow] Starting ... Success\n");
     } else {
