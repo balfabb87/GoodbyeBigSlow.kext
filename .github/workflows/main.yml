@@ -72,7 +72,15 @@ jobs:
           body: |
             **Changelog**: https://github.com/${{github.repository}}/commits/master
 
+            **Latest version**: [${{github.ref_name}}](https://github.com/${{github.repository}}/releases/download/Downloads/GoodbyeBigSlow-${{github.ref_name}}.zip)
+
             **Installation**: Unpack the zip, click open `Install` and then follow the instructions.
+
+            **Must disable [System Integrity Protection](https://support.apple.com/guide/security/system-integrity-protection-secb7ea06b49/) beforehand!**
+            1. Restart your computer in [Recovery mode](https://support.apple.com/kb/HT201314).
+            2. Launch Terminal from the Utilities menu.
+            3. Run the command `csrutil disable` or better `csrutil enable --without-kext`.
+            4. Restart your computer.
           generateReleaseNotes: false
           omitNameDuringUpdate: false
           omitBodyDuringUpdate: false

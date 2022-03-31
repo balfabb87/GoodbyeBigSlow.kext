@@ -2,7 +2,7 @@
 NAME := GoodbyeBigSlow
 
 KEXT_ID      := jakwings.kext.$(NAME)
-KEXT_VERSION := 2022.3.20
+KEXT_VERSION := 2022.3.31
 
 MACOS_VERSION_MIN := 11.6
 
@@ -24,7 +24,7 @@ XCODEBUILD_OPTIONS := MARKETING_VERSION=$(KEXT_VERSION) \
                       PRODUCT_NAME=$(NAME) PRODUCT_BUNDLE_IDENTIFIER=$(KEXT_ID) \
                       MODULE_NAME=$(KEXT_ID) MODULE_VERSION=$(KEXT_VERSION) \
                       MACOSX_DEPLOYMENT_TARGET=$(MACOS_VERSION_MIN) \
-                      CODE_SIGN_IDENTITY=$(CODE_SIGN_IDENTITY)
+                      CODE_SIGN_IDENTITY="$(CODE_SIGN_IDENTITY)"
 
 # https://developer.apple.com/library/archive/documentation/Darwin/Conceptual/KernelProgramming/
 # https://developer.apple.com/library/archive/documentation/Darwin/Conceptual/KEXTConcept/
@@ -33,12 +33,12 @@ all: $(BIN)
 
 $(BIN): $(DEPS) Makefile
 ifeq ($(XCODE),ON)
-	xcodebuild -configuration Release -project $(PROJ) $(XCODEBUILD_OPTIONS)
+	xcodebuild -verbose -configuration Release -project $(PROJ) $(XCODEBUILD_OPTIONS)
 else
 	mkdir -p $(KEXT)/Contents/MacOS
-	sed -e 's/\$$(MARKETING_VERSION)/$(KEXT_VERSION)/g' -e 's/\$$(PRODUCT_BUNDLE_IDENTIFIER)/$(KEXT_ID)/g' <$(NAME)/Info.plist >$(KEXT)/Contents/Info.plist
-	$(CXX) -std=c++11 -stdlib=libc++ -Os $(CFLAGS) $(CPPFLAGS) $(MARCH) -isystem '$(shell xcrun --sdk macosx --show-sdk-path)/System/Library/Frameworks/Kernel.framework/Headers' -mmacosx-version-min=$(MACOS_VERSION_MIN) -static $(NAME)/$(NAME).cpp -o $(BIN) -Xlinker -kext -nostdlib -lkmodc++ -lkmod -lcc_kext -Wall -pedantic
-	codesign --force --sign $(CODE_SIGN_IDENTITY) --entitlements $(NAME)/entitlements.xml --timestamp=none $(KEXT)
+	sed -e 's/\$$(PRODUCT_BUNDLE_IDENTIFIER)/$(KEXT_ID)/g' -e 's/\$$(MARKETING_VERSION)/$(KEXT_VERSION)/g' <$(NAME)/Info.plist >$(KEXT)/Contents/Info.plist
+	$(CXX) $(CFLAGS) $(CPPFLAGS) $(MARCH) -DXCODE_OFF -DKEXT_ID=$(KEXT_ID) -DKEXT_VERSION=$(KEXT_VERSION) -nostdinc -std=c++11 -stdlib=libc++ -Os -fno-builtin -fno-exceptions -fno-rtti -fno-common -mkernel -fapple-kext -fasm-blocks -fstrict-aliasing -DKERNEL -DKERNEL_PRIVATE -DDRIVER_PRIVATE -DAPPLE -DNeXT -isystem "$(shell xcrun --sdk macosx --show-sdk-path)/System/Library/Frameworks/Kernel.framework/Headers" -mmacosx-version-min=$(MACOS_VERSION_MIN) -static $(NAME)/$(NAME).cpp -o $(BIN) -Xlinker -kext -nostdlib -lkmodc++ -lkmod -lcc_kext -Wall -pedantic
+	codesign --force --sign "$(CODE_SIGN_IDENTITY)" --entitlements $(NAME)/entitlements.xml --timestamp=none $(KEXT)
 endif
 
 install: all $(KEXT)
@@ -46,12 +46,12 @@ install: all $(KEXT)
 	sudo true
 	sudo mkdir -p $(INSTALL_DIR)
 	sudo cp -R $(KEXT) $(INSTALL_DIR)
-	sudo kextload -v 4 $(INSTALL_DIR)/$(NAME).kext
+	sudo kextload -v 4 -b $(KEXT_ID)
 	sudo touch $(INSTALL_DIR)
 
 uninstall:
 	sudo true
-	sudo kextunload -v 4 $(INSTALL_DIR)/$(NAME).kext || true
+	sudo kextunload -v 4 -b $(KEXT_ID) || true
 	sudo rm -v -R -f $(INSTALL_DIR)/$(NAME).kext
 
 clean:

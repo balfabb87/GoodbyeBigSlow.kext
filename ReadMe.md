@@ -36,8 +36,8 @@ Repeat step 6-8 if throttling reoccurs in the future.
 
 After installation, the MSR modification will happen **at boot time only** unless you manually reload this kext:
 
-    sudo kextunload -v 4 /Library/Extensions/GoodbyeBigSlow.kext
-    sudo kextload   -v 4 /Library/Extensions/GoodbyeBigSlow.kext
+    sudo kextunload -v 4 -b jakwings.kext.GoodbyeBigSlow
+    sudo kextload   -v 4 -b jakwings.kext.GoodbyeBigSlow
 
 To build for other versions of Mac OS, try passing `MACOS_VERSION_MIN` to `make`:
 
@@ -46,6 +46,49 @@ To build for other versions of Mac OS, try passing `MACOS_VERSION_MIN` to `make`
 Diagnostics
 -------------
 
+To see whether the kext is successfully loaded:
+
+```
+$ kextstat -a -b jakwings.kext.GoodbyeBigSlow
+...
+Index Refs Address            Size       Wired      Architecture       Name (Version) UUID <Linked Against>
+  154    0 0xffffff7f9cd60000 0x1000     0x1000     x86_64             jakwings.kext.GoodbyeBigSlow (2022.3.31) F47EE514-72F5-382F-AB54-7FE2A3003277 <8 5 3>
+...
+```
+
+To view the log messages on system boot, [keep holding Command-V before you do](https://support.apple.com/kb/HT201255).
+
+To view the log messages when you have logged in:
+
+```
+$ log show --predicate '(sender == "GoodbyeBigSlow")' --style syslog --info --debug --source --timezone UTC
+...
+Timestamp                       (process)[PID]
+2022-03-31 08:53:07.539982+0000  localhost kernel[0]: (GoodbyeBigSlow) <GoodbyeBigSlow`GoodbyeBigSlow::init(OSDictionary*) (GoodbyeBigSlow.cpp:106)> [GoodbyeBigSlow] Initializing ...
+2022-03-31 08:53:07.539988+0000  localhost kernel[0]: (GoodbyeBigSlow) <GoodbyeBigSlow`GoodbyeBigSlow::init(OSDictionary*) (GoodbyeBigSlow.cpp:120)> [GoodbyeBigSlow] Initializing ... Success
+2022-03-31 08:53:07.539993+0000  localhost kernel[0]: (GoodbyeBigSlow) <GoodbyeBigSlow`GoodbyeBigSlow::probe(IOService*, int*) (GoodbyeBigSlow.cpp:132)> [GoodbyeBigSlow] Probing ...
+2022-03-31 08:53:07.539996+0000  localhost kernel[0]: (GoodbyeBigSlow) <GoodbyeBigSlow`GoodbyeBigSlow::probe(IOService*, int*) (GoodbyeBigSlow.cpp:139)> [GoodbyeBigSlow] Probing ... Success
+2022-03-31 08:53:07.540148+0000  localhost kernel[0]: (GoodbyeBigSlow) <GoodbyeBigSlow`GoodbyeBigSlow::start(IOService*) (GoodbyeBigSlow.cpp:145)> [GoodbyeBigSlow] Starting ...
+2022-03-31 08:53:07.540151+0000  localhost kernel[0]: (GoodbyeBigSlow) <GoodbyeBigSlow`GoodbyeBigSlow::start(IOService*) (GoodbyeBigSlow.cpp:150)> [GoodbyeBigSlow] De-asserting Processor Hot ...
+2022-03-31 08:53:07.540160+0000  localhost kernel[0]: (GoodbyeBigSlow) <GoodbyeBigSlow`GoodbyeBigSlow::start(IOService*) (GoodbyeBigSlow.cpp:0)> [GoodbyeBigSlow] De-asserting Processor Hot ... Done
+2022-03-31 08:53:07.540163+0000  localhost kernel[0]: (GoodbyeBigSlow) <GoodbyeBigSlow`GoodbyeBigSlow::start(IOService*) (GoodbyeBigSlow.cpp:174)> [GoodbyeBigSlow] Starting ... Success
+2022-03-31 08:55:04.507579+0000  localhost kernel[0]: (GoodbyeBigSlow) <GoodbyeBigSlow`GoodbyeBigSlow::stop(IOService*) (GoodbyeBigSlow.cpp:180)> [GoodbyeBigSlow] Stopping ...
+2022-03-31 08:55:04.507611+0000  localhost kernel[0]: (GoodbyeBigSlow) <GoodbyeBigSlow`GoodbyeBigSlow::free() (GoodbyeBigSlow.cpp:125)> [GoodbyeBigSlow] Freeing ...
+...
+
+# to view more verbose logs
+$ log show --predicate '(eventMessage CONTAINS "GoodbyeBigSlow")' --style syslog --info --debug --source --timezone UTC
+...
+[omitted here]
+...
+```
+
+To check whether your CPU has been successfully unthrottled, install [Intel Power Gadget](https://www.intel.com/content/www/us/en/developer/articles/tool/power-gadget.html) and watch the stats:
+
+![statistics of working cpu](other/cpu-stats.png)
+
+To display the stats on the menu bar, install [MenuMeter](https://github.com/yujitach/MenuMeters) (with auto-update off) instead of some spyware-like system monitoring tools like [Stats](https://github.com/jakwings/exelban-stats-no-aggressive-user-data-collection).[app](https://github.com/exelban/stats/issues/714) [¹](https://github.com/exelban/stats/pull/858) [²](https://github.com/exelban/stats/pull/742) [³](https://github.com/exelban/stats/commit/08d8d84cebf9078d7692999c243386c887d6ee14) [⁴](https://github.com/exelban/stats/commit/c5c4e4df3db0737b749ea91f903c8cf0f1ecd6aa#data_still_sent_despite_--omit).  Or you can try my fork without the stealthy behavior: https://github.com/jakwings/mac-stats/releases
+
 To find out whether your CPU has the MSR `MSR_POWER_CTL = 1FCH` if the installer is out of date:
 
 1.  retrieve the specifications of your CPU [here](https://ark.intel.com/content/www/us/en/ark/search/featurefilter.html)
@@ -53,14 +96,6 @@ To find out whether your CPU has the MSR `MSR_POWER_CTL = 1FCH` if the installer
 3.  open the PDF document, locate at the section ("2.x MSRs in ...") that matches your CPU architecture and read very carefully to which table(s) it refers and see if MSR with address `1FCH` is listed there
 4.  this is all for not halting your computer by invalid read/write operation on the MSR
 5.  for other CPUs, try https://github.com/calasanmarko/TurboMac or https://apple.stackexchange.com/
-
-To view the log messages on system boot, [keep holding Command-V before you do](https://support.apple.com/kb/HT201255).
-
-To check whether your CPU has been successfully unthrottled, install [Intel Power Gadget](https://www.intel.com/content/www/us/en/developer/articles/tool/power-gadget.html) and watch the stats:
-
-![statistics of working cpu](other/cpu-stats.png)
-
-To display the stats on the menu bar, install [MenuMeter](https://github.com/yujitach/MenuMeters) (with auto-update off) instead of some spyware-like system monitoring tools like [Stats](https://github.com/jakwings/exelban-stats-no-aggressive-user-data-collection).[app](https://github.com/exelban/stats/issues/714) [¹](https://github.com/exelban/stats/pull/858) [²](https://github.com/exelban/stats/pull/742) [³](https://github.com/exelban/stats/commit/08d8d84cebf9078d7692999c243386c887d6ee14) [⁴](https://github.com/exelban/stats/commit/c5c4e4df3db0737b749ea91f903c8cf0f1ecd6aa#data_still_sent_despite_--omit).  Or you can try my fork without the stealthy behavior: https://github.com/jakwings/mac-stats/releases
 
 When using GoodbyeBigSlow.kext, it is strongly recommended to monitor power consumption at the wall with a Kill-a-Watt meter or similar device and make sure that you don't exceed the power capabilities of your power adapter.  Use of GoodbyeBigSlow.kext to bypass this throttling scheme is at your own risk and can result in permanent damage to your power adapter or computer or both which may not be covered by your warranty.
 
