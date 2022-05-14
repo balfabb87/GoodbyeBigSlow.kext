@@ -10,7 +10,8 @@ set -euf; unset -v IFS; export LC_ALL=C
 
 exec >&2
 
-kext='/Library/Extensions/GoodbyeBigSlow.kext'
+kdir='/Library/Extensions'
+kext="${kdir}/GoodbyeBigSlow.kext"
 
 if [ -e "${kext}" ]; then
   printf '\nContinue to uninstall GoodbyeBigSlow.kext ? [yes/NO] '
@@ -20,6 +21,7 @@ if [ -e "${kext}" ]; then
       sudo true
       sudo kextunload -v 4 "${kext}" || true
       sudo rm -R -v "${kext}"
+      sudo kextcache -v 4 -i / || sudo touch "${kdir}"
       printf 'Done.\n'
       ;;
     (*)

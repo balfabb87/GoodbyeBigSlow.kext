@@ -10,6 +10,8 @@ set -euf; unset -v IFS; export LC_ALL=C
 
 exec >&2
 
+script_exe="$0"
+
 status=checking
 
 printf '[INFO] Checking CPU ...\n'
@@ -25,8 +27,6 @@ on_exit() {
   exit "${exitcode}"
 }
 trap on_exit EXIT
-
-script_dir="$(dirname -- "$0")"
 
 vendor="$(sysctl -n machdep.cpu.vendor)"
 processor="$(sysctl -n machdep.cpu.brand_string)"
@@ -107,7 +107,7 @@ case "${vendor}" in
 esac
 
 if [ -t 0 ]; then
-  src_kext="${script_dir}/GoodbyeBigSlow.kext"
+  src_kext="$(dirname -- "${script_exe}")/GoodbyeBigSlow.kext"
   if [ -e "${src_kext}" ]; then
     printf '\nContinue to install this kext ? [yes/NO] '
     read -r answer
@@ -119,17 +119,17 @@ if [ -t 0 ]; then
         dst_kext="${dst_dir}/GoodbyeBigSlow.kext"
         if [ -e "${dst_kext}" ]; then
           printf '[INFO] Found existing GoodbyeBigSlow.kext in "%s"\n' "${dst_dir}"
+          sudo kextunload -v 4 "${dst_kext}" || true
           backup="${dst_kext}-backup-$(date '+%Y%m%d%H%M%S')"
           printf '[INFO] Moving existing GoodbyeBigSlow.kext to "%s" ...\n' "${backup}"
-          sudo kextunload -v 4 "${dst_kext}" || true
           sudo mv "${dst_kext}" "${backup}"
         else
           sudo mkdir -p "${dst_dir}"
         fi
         printf '[INFO] Installing GoodbyeBigSlow.kext to "%s" ...\n' "${dst_dir}"
         sudo cp -R -- "${src_kext}" "${dst_dir}"
+        sudo kextcache -v 4 -i / || sudo touch "${dst_dir}"
         sudo kextload -v 4 "${dst_kext}" || true
-        sudo touch "${dst_dir}"
         status=done
         printf 'Done.\n'
         exit 0

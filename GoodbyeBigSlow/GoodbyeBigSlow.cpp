@@ -7,55 +7,39 @@
 #include "GoodbyeBigSlow.hpp"
 
 OSDefineMetaClassAndStructors(GoodbyeBigSlow, IOService)
+OSDefineMetaClassAndStructors(GoodbyeBigSlow_NoHardPLimits, IOService)
 
 #define super IOService
 
-bool GoodbyeBigSlow::init(OSDictionary* dict)
+bool GoodbyeBigSlow::init(OSDictionary* personality)
 {
-    IOLog("[GoodbyeBigSlow] Initializing ...\n");
-    const auto result = super::init(dict);
-
-    if (result) {
-        IOLog("[GoodbyeBigSlow] Initializing ... Success\n");
-    } else {
-        IOLog("[GoodbyeBigSlow] Initializing ... Failure\n");
-    }
+    DBLogStatus("Initializing", -1);
+    const auto result = super::init(personality);
+    DBLogStatus("Initializing", result ? 1 : 0);
     return result;
 }
 
 void GoodbyeBigSlow::free(void)
 {
-    IOLog("[GoodbyeBigSlow] Freeing ...\n");
+    DBLog("Freeing ...");
     super::free();
 }
 
+// Driver Matching: 1. IOProviderClass -> 2. personality -> 3. IOProbeScore
+// Step 3: init() attach() probe() detach() // free() if probe fails
 IOService* GoodbyeBigSlow::probe(IOService* provider, SInt32* score)
 {
-    IOLog("[GoodbyeBigSlow] Probing ...\n");
+    DBLogStatus("Probing", -1);
     const auto result = super::probe(provider, score);
-
-    if (result) {
-        IOLog("[GoodbyeBigSlow] Probing ... Success\n");
-    } else {
-        IOLog("[GoodbyeBigSlow] Probing ... Failure\n");
-    }
+    DBLogStatus("Probing", result ? 1 : 0);
     return result;
 }
 
 bool GoodbyeBigSlow::start(IOService* provider)
 {
-    IOLog("[GoodbyeBigSlow] Starting ...\n");
-    const auto result = super::start(provider);
-
-    if (result) {
-        IOLog("[GoodbyeBigSlow] Starting ... Success\n");
-        if (kext_start(NULL, NULL) != KERN_SUCCESS) {
-            super::stop(provider);
-            return false;
-        }
-    } else {
-        IOLog("[GoodbyeBigSlow] Starting ... Failure\n");
-    }
+    DBLogStatus("Starting", -1);
+    const auto result = kext_start(NULL, NULL) == KERN_SUCCESS && super::start(provider);
+    DBLogStatus("Starting", result ? 1 : 0);
     return result;
 }
 

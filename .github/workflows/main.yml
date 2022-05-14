@@ -11,13 +11,14 @@ on: [push, pull_request]
 env:
   IS_RELEASE: ${{ startsWith(github.ref, 'refs/tags/v') && github.repository == 'jakwings/GoodbyeBigSlow.kext' }}
   VERSION_MIN: '10.11'
+  SDK_HASH: d080fc672d94f95eb54651c37ede80f61761ce4c91f87061e11a20222c8d00c8
 
 jobs:
   build:
     runs-on: macos-latest
     steps:
       - name: Reuse cached files
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ~/Thirdparty
           key: ${{ runner.os }}-${{ env.VERSION_MIN }}
@@ -30,10 +31,11 @@ jobs:
             mkdir -p ~/Thirdparty
             curl --fail -L -o ~/Thirdparty/sdk.tar.xz "https://github.com/phracker/MacOSX-SDKs/releases/download/11.3/MacOSX${VERSION_MIN}.sdk.tar.xz"
           fi
+          [[ "$(openssl dgst -sha256 -hex ~/Thirdparty/sdk.tar.xz)" =~ "${SDK_HASH}"$ ]]
           tar xzf ~/Thirdparty/sdk.tar.xz -C "${dir}/Developer/SDKs/"
 
       - name: Clone repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           persist-credentials: false
 
