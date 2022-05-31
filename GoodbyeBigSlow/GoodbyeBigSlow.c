@@ -12,13 +12,13 @@
 //       $ plimit [<frequency>]
 //       $ gpu frequency [<frequency>]
 //       $ cpu frequency [<frequency>]
+//       $ cpu idle [<percent>]
 //       198H MSR_IA32_PERF_STS (IA32_PERF_STATUS; CPUID.01H:ECX[7]=1)
 //       199H MSR_IA32_PERF_CTL (mask: 0xFF00 for targeted CPUs)
 //       $ cpu hwp [<frequency>]
 //       770H IA32_PM_ENABLE[0] (alternative; Write-Once; CPUID.06H:EAX.[7]=1)
 //       $ voltage <min> <max>
-//       $ msr read  <address>
-//       $ msr write <address> <integer|0xHHHHHHHHHHHHHHHH>
+//       $ msr[_mp|_mt] <address> [[and|or|xor] <0xHHHHHHHHHHHHHHHH>]
 
 #ifdef __cplusplus
 extern "C" {
@@ -47,26 +47,6 @@ const uint64_t kMsrDisableTurboBoost = 1ULL << 38;
 #define MSR_IA32_THERM_STATUS 0x19C
 #endif
 const uint64_t kMsrThermalStatusMask = 0x28A;  // 0b1010001010
-
-// https://github.com/apple/darwin-xnu/blob/main/bsd/sys/ioccom.h
-#define XCPM_WUT _IOW('X', 0, uint32_t)  // ???
-#define XCPM_GET_PSTATES _IO('X', 0x01)  // MHz step by 100MHz
-// ? AICPM_SET_CPU_HARD_PLIMIT_MAX (AppleIntelCPUPowerManagement.kext) ?
-#define XCPM_SET_CPU_HARD_PLIMIT_MAX _IOWR('X', 0x20, uint64_t)  // 100MHz?
-
-#pragma pack(push, 8)
-struct XCPMPstates {
-    uint64_t freq_turbo;
-    uint64_t freq_core;
-    uint64_t freq_count;
-    uint32_t data[256];  // [(Pn,min), ..., (Px,norm), ..., (P0,turbo), ...] ?
-};
-#pragma pack(pop)
-
-// https://github.com/apple/darwin-xnu/blob/main/osfmk/i386/pmCPU.h
-// pmDispatch->*: /System/Library/Extensions/AppleIntelCPUPowerManagement.kext
-// Called to get/set CPU power management state.
-extern int pmCPUControl(uint32_t cmd, void *arg);
 
 // https://github.com/apple/darwin-xnu/blob/main/osfmk/i386/mp.h
 // Perform actions on all processor cores.
@@ -249,35 +229,6 @@ static kern_return_t kext_start(__unused kmod_info_t *_o, __unused void *data)
         return KERN_FAILURE;
     }
     int ret = -1;
-
-    // TODO: pmDispatch seems always unready (IOProbeScore=-1) need permission?
-    uint32_t pmmode = 0;
-    DBLog("Detecting Power Management Mode ...");
-    if ((ret = pmCPUControl(XCPM_WUT, &pmmode)) == 0 && pmmode == 2) {
-        DBLog("Detected Power Management Mode: XCPM");
-
-        struct XCPMPstates states;
-        memset(&states, 0, sizeof(states));
-
-        DBLogStatus("Getting PStates", -1);
-        if (pmCPUControl(XCPM_GET_PSTATES, &states) == 0) {
-            DBLogStatus("Getting PStates", 1);
-            LOG("Frequency = %llu-%lluMHz", states.freq_core, states.freq_turbo);
-            LOG("Count = %llu", states.freq_count);
-            for (uint64_t i = 0; i < states.freq_count / 2; i++) {
-                LOG("(%02llu) P%u = %uMHz", i, states.data[i], states.data[i+1]);
-            }
-
-            //uint64_t limit = states.freq_turbo / 100;
-            //DBLogStatus("Resetting Hard PLimits", -1);
-            //ret = pmCPUControl(XCPM_SET_CPU_HARD_PLIMIT_MAX, &limit) == 0;
-            //DBLogStatus("Resetting Hard PLimits", ret);
-        } else {
-            DBLogStatus("Getting PStates", 0);
-        }
-    } else {
-        LOG("Detected Power Management Mode: AICPM (%d,%u) ?", ret, pmmode);
-    }
 
     // GoodbyeBigSlow=<flags>  // "-": disable; "+": enable
 #define BOOT_ARGS_SIZE sizeof("-turbo:-speedstep")
